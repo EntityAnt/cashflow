@@ -1,0 +1,21 @@
+{% extends 'cashflow/base.html' %}
+{% block content %}
+<div class="container marketing mt-5">
+    <div class="row">
+
+        <div class="col-lg-4">
+
+            <p>Дата: {{ object.date|date:"d M Y" }}</p>
+            <p>Статус: {{ object.status }}</p>
+            <p>Тип операции: {{ object.operation_type }}</p>
+            <p>Категория: {{ object.category }}</p>
+            <p>Подкатегория: {{ object.subcategory }}</p>
+            <p>Сумма: {{ object.amount }}</p>
+            <p>Комментарий: {{ object.comment}}</p>
+            <p><a class="btn btn-secondary" href="{% url 'cashflow:cashflow-list' %}">Назад</a></p>
+        </div><!-- /.col-lg-4 -->
+
+    </div><!-- /.row -->
+</div><!-- /.container -->
+
+{% endblock %}}

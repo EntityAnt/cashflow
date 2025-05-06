@@ -1,9 +1,24 @@
 from django import forms
 from typing import Any, Dict, Optional
+
+from django.forms import BooleanField, ImageField, ModelForm
+
 from .models import CashFlow, SubCategory
 
 
-class CashFlowForm(forms.ModelForm):
+class StyleFormMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for fild_name, fild in self.fields.items():
+            if isinstance(fild, BooleanField):
+                fild.widget.attrs["class"] = "form-check-input"
+            elif isinstance(fild, ImageField):
+                fild.widget.attrs["class"] = "form-control-file"
+            else:
+                fild.widget.attrs["class"] = "form-control"
+
+
+class CashFlowForm(StyleFormMixin, ModelForm):
     """
     Форма для создания и редактирования записей ДДС.
     Обеспечивает динамическую загрузку подкатегорий в зависимости от выбранной категории.
@@ -20,45 +35,37 @@ class CashFlowForm(forms.ModelForm):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """
         Инициализация формы с динамическим queryset для подкатегорий.
-
-        Args:
-            *args: Позиционные аргументы
-            **kwargs: Именованные аргументы
         """
         super().__init__(*args, **kwargs)
-        self.fields['subcategory'].queryset = SubCategory.objects.none()
 
-        # Если форма отправлена и содержит данные о категории
-        if 'category' in self.data:
-            try:
-                category_id: int = int(self.data.get('category'))
-                self.fields['subcategory'].queryset = SubCategory.objects.filter(
-                    category_id=category_id
-                ).order_by('name')
-            except (ValueError, TypeError):
-                pass  # Некорректный ID категории
         # Если форма редактирует существующую запись
-        elif self.instance.pk and self.instance.category:
+        if self.instance.pk and self.instance.category:
             self.fields['subcategory'].queryset = self.instance.category.subcategories.order_by('name')
+        else:
+            # Для новой записи - показываем все подкатегории или none, если категория не выбрана
+            category_id = self.data.get('category') if 'category' in self.data else None
+            if category_id:
+                try:
+                    self.fields['subcategory'].queryset = SubCategory.objects.filter(
+                        category_id=int(category_id)
+                    ).order_by('name')
+                except (ValueError, TypeError):
+                    self.fields['subcategory'].queryset = SubCategory.objects.none()
+            else:
+                self.fields['subcategory'].queryset = SubCategory.objects.none()
 
     def clean(self) -> Dict[str, Any]:
         """
         Дополнительная валидация данных формы.
-
-        Returns:
-            Dict[str, Any]: Очищенные данные формы
-
-        Raises:
-            forms.ValidationError: Если нарушены бизнес-правила
         """
-        cleaned_data: Dict[str, Any] = super().clean()
+        cleaned_data = super().clean()
         category = cleaned_data.get('category')
         subcategory = cleaned_data.get('subcategory')
 
-        # Проверка, что подкатегория принадлежит выбранной категории
-        if category and subcategory and subcategory.category != category:
-            raise forms.ValidationError(
-                "Выбранная подкатегория не принадлежит выбранной категории"
-            )
+        if category and subcategory:
+            if subcategory.category != category:
+                raise forms.ValidationError(
+                    "Выбранная подкатегория не принадлежит выбранной категории"
+                )
 
         return cleaned_data

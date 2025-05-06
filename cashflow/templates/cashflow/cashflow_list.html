@@ -1,0 +1,67 @@
+{% extends 'cashflow/base.html' %}
+{% block content %}
+{% load my_tags %}
+<div class="container marketing mt-5">
+    <div class="container text-center mt-3">
+        <div class="row justify-content-center">
+            <div class="col-4"></div>
+            <div class="col-4 mt-3">
+                <h2>Все записи</h2>
+
+                <a class="btn btn-success mt-3" href="{% url 'cashflow:cashflow-create' %}">Создать запись&raquo;</a>
+
+
+            </div>
+            <div class="col-4 mt-5">
+                <div class="form-body ">
+                    {% csrf_token %}
+                    <form class="form-body mt-5" method="GET" action="{% url 'cashflow:cashflow-list' %}"
+                          enctype="multipart/form-data">
+                        <input class="border border-primary border-3 opacity-75" type="text" name="search"
+                               placeholder="Поиск"
+                               value="{{ request.GET.search }}">
+                        <button type="submit" class="btn btn-primary btn-sm mb-1 ">Поиск</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div class="row">
+        <div class="table-responsive small">
+            <table class="table table-success table-striped">
+                <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Статус</th>
+                    <th>Тип</th>
+                    <th>Категория</th>
+                    <th>Подкатегория</th>
+                    <th>Сумма</th>
+                    <th>Комментарий</th>
+                    <th></th>
+                </tr>
+                </thead>
+
+                {% for object in object_list %}
+                <tr>
+                    <td>{{ object.date|date:"d M Y" }}</td>
+                    <td>{{ object.status }}</td>
+                    <td>{{ object.operation_type }}</td>
+                    <td>{{ object.category }}</td>
+                    <td>{{ object.subcategory }}</td>
+                    <td>{{ object.amount }}</td>
+                    <td>{{ object.comment|truncatechars:30 }}</td>
+
+                    <td>
+                        <a class="btn btn-primary btn-sm" href="#">Редактировать</a>
+                        <a class="btn btn-danger btn-sm" href="{% url 'cashflow:cashflow-delete' object.pk %}">Удалить</a>
+                    </td>
+                </tr>
+                {% endfor%}
+            </table>
+
+        </div><!-- /.row -->
+    </div><!-- /.container -->
+</div>
+{% endblock %}}

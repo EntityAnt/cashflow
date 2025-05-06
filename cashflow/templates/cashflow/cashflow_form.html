@@ -1,0 +1,54 @@
+{% extends 'cashflow/base.html' %}
+{% block content %}
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-6 mt-5">
+            <form class="row" method="post" enctype="multipart/form-data">
+                <div class="card">
+                    <div class="form-body">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        {% if object %}
+                        Сохранить
+                        {% else %}
+                        Создать
+                        {% endif %}
+                    </button>
+                    <a class="btn btn-primary mt-1" href="{% url 'cashflow:cashflow-list' %}" role="button">Отмена</a>
+
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('id_category');
+    const subcategorySelect = document.getElementById('id_subcategory');
+
+    if (categorySelect && subcategorySelect) {
+        categorySelect.addEventListener('change', function() {
+            const categoryId = this.value;
+            if (categoryId) {
+                fetch(`/get-subcategories/${categoryId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        subcategorySelect.innerHTML = '';
+                        data.forEach(item => {
+                            const option = document.createElement('option');
+                            option.value = item.id;
+                            option.textContent = item.name;
+                            subcategorySelect.appendChild(option);
+                        });
+                    });
+            } else {
+                subcategorySelect.innerHTML = '';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
