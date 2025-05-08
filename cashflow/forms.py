@@ -1,9 +1,11 @@
 from django import forms
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from django.forms import BooleanField, ImageField, ModelForm
+from django.utils import timezone
 
-from .models import CashFlow, SubCategory
+from .models import CashFlow, OperationType, Category, SubCategory
+from .services import CashFlowValidator
 
 
 class StyleFormMixin:
@@ -20,52 +22,98 @@ class StyleFormMixin:
 
 class CashFlowForm(StyleFormMixin, ModelForm):
     """
-    Форма для создания и редактирования записей ДДС.
-    Обеспечивает динамическую загрузку подкатегорий в зависимости от выбранной категории.
-    """
+        Форма для создания и редактирования записей ДДС.
+        Использует сервисный слой для валидации.
+        """
 
     class Meta:
-        model: CashFlow = CashFlow
-        fields: str = '__all__'
-        widgets: Dict[str, Any] = {
-            'date': forms.DateInput(attrs={'type': 'date'}),
+        model = CashFlow
+        fields = '__all__'
+        widgets = {
+            'date': forms.DateInput(
+                attrs={
+                    'type': 'date',
+                    'max': timezone.now().strftime('%Y-%m-%d'),
+                },
+                format='%Y-%m-%d'
+            ),
+            'amount': forms.NumberInput(attrs={'min': '0.01', 'step': '0.01'}),
             'comment': forms.Textarea(attrs={'rows': 3}),
         }
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """
-        Инициализация формы с динамическим queryset для подкатегорий.
-        """
         super().__init__(*args, **kwargs)
+        self.fields['subcategory'].queryset = SubCategory.objects.none()
 
-        # Если форма редактирует существующую запись
-        if self.instance.pk and self.instance.category:
+        # Для новой записи устанавливаем текущую дату, если не передано другое значение
+        if not self.instance.pk and 'date' not in self.data:
+            self.initial['date'] = timezone.now().date()
+
+        if 'category' in self.data:
+            try:
+                category_id = int(self.data.get('category'))
+                self.fields['subcategory'].queryset = SubCategory.objects.filter(
+                    category_id=category_id
+                ).order_by('name')
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk and self.instance.category:
             self.fields['subcategory'].queryset = self.instance.category.subcategories.order_by('name')
-        else:
-            # Для новой записи - показываем все подкатегории или none, если категория не выбрана
-            category_id = self.data.get('category') if 'category' in self.data else None
-            if category_id:
-                try:
-                    self.fields['subcategory'].queryset = SubCategory.objects.filter(
-                        category_id=int(category_id)
-                    ).order_by('name')
-                except (ValueError, TypeError):
-                    self.fields['subcategory'].queryset = SubCategory.objects.none()
-            else:
-                self.fields['subcategory'].queryset = SubCategory.objects.none()
 
     def clean(self) -> Dict[str, Any]:
-        """
-        Дополнительная валидация данных формы.
-        """
+        """Основная валидация формы"""
         cleaned_data = super().clean()
-        category = cleaned_data.get('category')
-        subcategory = cleaned_data.get('subcategory')
+        return CashFlowValidator.validate_all(cleaned_data)
 
-        if category and subcategory:
-            if subcategory.category != category:
-                raise forms.ValidationError(
-                    "Выбранная подкатегория не принадлежит выбранной категории"
-                )
 
-        return cleaned_data
+class OperationTypeForm(forms.ModelForm):
+    class Meta:
+        model = OperationType
+        fields = ['name']
+        labels = {'name': 'Название типа*'}
+
+    def clean_name(self):
+        name = self.cleaned_data['name']
+        if OperationType.objects.filter(name__iexact=name).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Тип операции с таким названием уже существует")
+        return name
+
+
+class CategoryForm(forms.ModelForm):
+    class Meta:
+        model = Category
+        fields = ['name', 'operation_type']
+        labels = {
+            'name': 'Название категории*',
+            'operation_type': 'Тип операции*'
+        }
+
+    def clean_name(self):
+        name = self.cleaned_data['name']
+        operation_type = self.cleaned_data.get('operation_type')
+        if operation_type and Category.objects.filter(
+                name__iexact=name,
+                operation_type=operation_type
+        ).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Категория с таким названием уже существует для этого типа операции")
+        return name
+
+
+class SubCategoryForm(forms.ModelForm):
+    class Meta:
+        model = SubCategory
+        fields = ['name', 'category']
+        labels = {
+            'name': 'Название подкатегории*',
+            'category': 'Категория*'
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Всегда показываем все категории
+        self.fields['category'].queryset = Category.objects.all().select_related('operation_type')
+
+        # Если форма привязана к существующему объекту
+        if self.instance and self.instance.pk:
+            self.fields['category'].initial = self.instance.category

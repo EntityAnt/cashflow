@@ -1,0 +1,73 @@
+{% extends 'cashflow/base.html' %}
+{% block content %}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">Список статусов операций</h4>
+                        <a href="{% url 'cashflow:status-create' %}" class="btn btn-success btn-sm">
+                            <i class="bi bi-plus-circle"></i> Добавить
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Название статуса</th>
+                                    <th class="text-end">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for status in statuses %}
+                                <tr>
+                                    <td>{{ status.name }}</td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'cashflow:status-update' status.pk %}"
+                                               class="btn btn-outline-primary" title="Редактировать">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{% url 'cashflow:status-delete' status.pk %}"
+                                               class="btn btn-outline-danger" title="Удалить">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center">Нет статусов для отображения</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Подключение иконок Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+
+<style>
+    .card {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .card-header {
+        font-weight: 500;
+    }
+    .table {
+        margin-bottom: 0;
+    }
+    .table th {
+        border-top: none;
+    }
+</style>
+{% endblock %}

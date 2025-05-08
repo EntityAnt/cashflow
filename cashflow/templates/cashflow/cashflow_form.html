@@ -2,52 +2,198 @@
 {% block content %}
 
 <div class="container mt-5">
+    <h2>{% if object %}Редактирование{% else %}Создание{% endif %} записи ДДС</h2>
     <div class="row">
         <div class="col-6 mt-5">
             <form class="row" method="post" enctype="multipart/form-data">
                 <div class="card">
                     <div class="form-body">
                         {% csrf_token %}
-                        {{ form.as_p }}
-                    </div>
-                    <button type="submit" class="btn btn-primary">
-                        {% if object %}
-                        Сохранить
-                        {% else %}
-                        Создать
-                        {% endif %}
-                    </button>
-                    <a class="btn btn-primary mt-1" href="{% url 'cashflow:cashflow-list' %}" role="button">Отмена</a>
 
+                        <!-- Поле даты с улучшенной валидацией -->
+                        <div class="mb-3">
+                            <label for="id_date" class="form-label">Дата*</label>
+                            <input
+                                type="date"
+                                name="date"
+                                value="{% if form.date.value %}{{ form.date.value|date:'Y-m-d' }}{% else %}{{ current_date|date:'Y-m-d' }}{% endif %}"
+                                class="form-control {% if form.date.errors %}is-invalid{% endif %}"
+                                max="{{ current_date|date:'Y-m-d' }}"
+                                id="id_date"
+                                required
+                            >
+                            {% if form.date.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.date.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Укажите дату операции (не может быть будущей)</small>
+                        </div>
+
+                        <!-- Поле статуса -->
+                        <div class="mb-3">
+                            <label for="id_status" class="form-label">Статус*</label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.status.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Поле типа операции -->
+                        <div class="mb-3">
+                            <label for="id_operation_type" class="form-label">Тип операции*</label>
+                            {{ form.operation_type }}
+                            {% if form.operation_type.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.operation_type.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Поле категории -->
+                        <div class="mb-3">
+                            <label for="id_category" class="form-label">Категория*</label>
+                            {{ form.category }}
+                            {% if form.category.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.category.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Поле подкатегории -->
+                        <div class="mb-3">
+                            <label for="id_subcategory" class="form-label">Подкатегория*</label>
+                            {{ form.subcategory }}
+                            {% if form.subcategory.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.subcategory.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Поле суммы -->
+                        <div class="mb-3">
+                            <label for="id_amount" class="form-label">Сумма (руб)*</label>
+                            <div class="input-group">
+                                {{ form.amount }}
+                                <span class="input-group-text">₽</span>
+                            </div>
+                            {% if form.amount.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.amount.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">Укажите положительную сумму</small>
+                        </div>
+
+                        <!-- Поле комментария -->
+                        <div class="mb-3">
+                            <label for="id_comment" class="form-label">Комментарий</label>
+                            {{ form.comment }}
+                            {% if form.comment.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.comment.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary">
+                            {% if object %}
+                            Сохранить
+                            {% else %}
+                            Создать
+                            {% endif %}
+                        </button>
+                        <a class="btn btn-secondary ms-2" href="{% url 'cashflow:cashflow-list' %}" role="button">Отмена</a>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<!-- JavaScript для динамической загрузки подкатегорий -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const categorySelect = document.getElementById('id_category');
     const subcategorySelect = document.getElementById('id_subcategory');
 
+    // Функция для добавления класса is-invalid при ошибках
+    function markInvalidFields() {
+        {% if form.errors %}
+            {% for field in form %}
+                {% if field.errors %}
+                    document.getElementById('id_{{ field.name }}').classList.add('is-invalid');
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    }
+
+    // Инициализация при загрузке
+    markInvalidFields();
+
     if (categorySelect && subcategorySelect) {
+        // Загружаем подкатегории при загрузке страницы
+        if (categorySelect.value) {
+            loadSubcategories(categorySelect.value);
+        }
+
+        // Обработчик изменения категории
         categorySelect.addEventListener('change', function() {
-            const categoryId = this.value;
-            if (categoryId) {
-                fetch(`/get-subcategories/${categoryId}/`)
-                    .then(response => response.json())
-                    .then(data => {
-                        subcategorySelect.innerHTML = '';
-                        data.forEach(item => {
-                            const option = document.createElement('option');
-                            option.value = item.id;
-                            option.textContent = item.name;
-                            subcategorySelect.appendChild(option);
-                        });
-                    });
-            } else {
-                subcategorySelect.innerHTML = '';
-            }
+            loadSubcategories(this.value);
         });
+    }
+
+    function loadSubcategories(categoryId) {
+        if (categoryId) {
+            fetch(`/get-subcategories/${categoryId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    subcategorySelect.innerHTML = '';
+                    // Добавляем пустой вариант
+                    const emptyOption = document.createElement('option');
+                    emptyOption.value = '';
+                    emptyOption.textContent = '---------';
+                    subcategorySelect.appendChild(emptyOption);
+
+                    // Добавляем подкатегории
+                    data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.name;
+                        subcategorySelect.appendChild(option);
+                    });
+
+                    // Восстанавливаем выбранное значение
+                    if ('{{ form.subcategory.value|default_if_none:"" }}') {
+                        subcategorySelect.value = '{{ form.subcategory.value }}';
+                    }
+                });
+        } else {
+            subcategorySelect.innerHTML = '';
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = '---------';
+            subcategorySelect.appendChild(emptyOption);
+        }
     }
 });
 </script>

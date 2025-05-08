@@ -4,45 +4,68 @@
 <div class="container marketing mt-5">
     <div class="container text-center mt-3">
         <div class="row justify-content-center">
-            <div class="col-4"></div>
-            <div class="col-4 mt-3">
+            <div class="col-12">
                 <h2>Все записи</h2>
 
+                <!-- Форма фильтрации по датам -->
+                <form class="row g-3 justify-content-center mt-3" method="GET" action="{% url 'cashflow:cashflow-list' %}">
+                    <div class="col-auto">
+                        <label for="start_date" class="col-form-label">С:</label>
+                    </div>
+                    <div class="col-auto">
+                        <input type="date" class="form-control" id="start_date" name="start_date"
+                               value="{{ request.GET.start_date }}">
+                    </div>
+                    <div class="col-auto">
+                        <label for="end_date" class="col-form-label">По:</label>
+                    </div>
+                    <div class="col-auto">
+                        <input type="date" class="form-control" id="end_date" name="end_date"
+                               value="{{ request.GET.end_date }}">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">Применить</button>
+                    </div>
+                    <div class="col-auto">
+                        <a href="{% url 'cashflow:cashflow-list' %}" class="btn btn-secondary">Сбросить</a>
+                    </div>
+                </form>
+
                 <a class="btn btn-success mt-3" href="{% url 'cashflow:cashflow-create' %}">Создать запись&raquo;</a>
-
-
-            </div>
-            <div class="col-4 mt-5">
-                <div class="form-body ">
-                    {% csrf_token %}
-                    <form class="form-body mt-5" method="GET" action="{% url 'cashflow:cashflow-list' %}"
-                          enctype="multipart/form-data">
-                        <input class="border border-primary border-3 opacity-75" type="text" name="search"
-                               placeholder="Поиск"
-                               value="{{ request.GET.search }}">
-                        <button type="submit" class="btn btn-primary btn-sm mb-1 ">Поиск</button>
-                    </form>
-                </div>
             </div>
         </div>
-
     </div>
-    <div class="row">
+
+    <div class="row mt-4">
         <div class="table-responsive small">
             <table class="table table-success table-striped">
                 <thead>
                 <tr>
-                    <th>Дата</th>
+                    <th class="text-primary">
+                        <a href="?sort={% if request.GET.sort == 'date' %}-date{% else %}date{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}" class="text-decoration-none">
+                            Дата
+                            {% if request.GET.sort == 'date' %}<i class="bi bi-arrow-up"></i>
+                            {% elif request.GET.sort == '-date' %}<i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        </a>
+                    </th>
                     <th>Статус</th>
                     <th>Тип</th>
                     <th>Категория</th>
                     <th>Подкатегория</th>
-                    <th>Сумма</th>
+                    <th class="text-primary">
+                        <a href="?sort={% if request.GET.sort == 'amount' %}-amount{% else %}amount{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}" class="text-decoration-none">
+                            Сумма
+                            {% if request.GET.sort == 'amount' %}<i class="bi bi-arrow-up"></i>
+                            {% elif request.GET.sort == '-amount' %}<i class="bi bi-arrow-down"></i>
+                            {% endif %}
+                        </a>
+                    </th>
                     <th>Комментарий</th>
-                    <th></th>
+                    <th>Действия</th>
                 </tr>
                 </thead>
-
+                <tbody>
                 {% for object in object_list %}
                 <tr>
                     <td>{{ object.date|date:"d M Y" }}</td>
@@ -52,16 +75,45 @@
                     <td>{{ object.subcategory }}</td>
                     <td>{{ object.amount }}</td>
                     <td>{{ object.comment|truncatechars:30 }}</td>
-
                     <td>
-                        <a class="btn btn-primary btn-sm" href="#">Редактировать</a>
-                        <a class="btn btn-danger btn-sm" href="{% url 'cashflow:cashflow-delete' object.pk %}">Удалить</a>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a class="btn btn-primary" href="{% url 'cashflow:cashflow-update' object.pk %}">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a class="btn btn-danger" href="{% url 'cashflow:cashflow-delete' object.pk %}">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
                     </td>
                 </tr>
-                {% endfor%}
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">Нет записей для отображения</td>
+                </tr>
+                {% endfor %}
+                </tbody>
             </table>
-
-        </div><!-- /.row -->
-    </div><!-- /.container -->
+        </div>
+    </div>
 </div>
-{% endblock %}}
+
+<!-- Подключение иконок Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+
+<style>
+    .table-responsive {
+        margin-top: 20px;
+    }
+    .btn-group-sm > .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    th a {
+        text-decoration: none;
+        color: inherit;
+    }
+    th a:hover {
+        color: #0d6efd;
+    }
+</style>
+{% endblock %}
