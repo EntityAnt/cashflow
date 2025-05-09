@@ -8,11 +8,14 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.db.models import QuerySet
-from typing import Any, Dict, Optional, List, Type
+from typing import Any, Dict, Type
 
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from rest_framework.viewsets import ModelViewSet
 
+from . import serializers
 from .models import CashFlow, SubCategory, Status, OperationType, Category
 from .forms import CashFlowForm, OperationTypeForm, CategoryForm, SubCategoryForm
 from .serializers import CashFlowSerializer, StatusSerializer, OperationTypeSerializer, CategorySerializer, \
@@ -314,9 +317,46 @@ class CashFlowViewSet(ModelViewSet):
     queryset: QuerySet[CashFlow] = CashFlow.objects.all()
     serializer_class: Type[Serializer] = CashFlowSerializer
 
+    def get_queryset(self) -> QuerySet[CashFlow]:
+        queryset = super().get_queryset()
+
+        # Получаем параметры периода из запроса
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+
+        if start_date and end_date:
+            try:
+                queryset = queryset.filter(
+                    date__gte=start_date,
+                    date__lte=end_date
+                )
+            except (ValueError, TypeError):
+                raise serializers.ValidationError("Некорректный формат даты. Используйте YYYY-MM-DD")
+
+        return queryset.order_by('-date')
+
     def perform_create(self, serializer: Serializer) -> None:
         validated_data = CashFlowValidator.validate_all(serializer.validated_data)
         serializer.save(**validated_data)
+
+    @action(detail=False, methods=['get'])
+    def period_stats(self, request) -> Response:
+        """Дополнительный endpoint для статистики за период"""
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+
+        if not start_date or not end_date:
+            return Response({"error": "Необходимо указать start_date и end_date"}, status=400)
+
+        try:
+            queryset = self.get_queryset().filter(
+                date__gte=start_date,
+                date__lte=end_date
+            )
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except (ValueError, TypeError):
+            return Response({"error": "Некорректный формат даты"}, status=400)
 
 
 """ViewSet для статуса операции"""

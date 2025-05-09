@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from .models import CashFlow, Status, OperationType, Category, SubCategory
@@ -27,6 +29,16 @@ class CashFlowSerializer(serializers.ModelSerializer):
             return CashFlowValidator.validate_all(data)
         except ValidationError as e:
             raise serializers.ValidationError(e.messages) from e
+
+    def validate_dates(start: str, end: str) -> tuple[date, date]:
+        try:
+            start_date = date.fromisoformat(start)
+            end_date = date.fromisoformat(end)
+            if start_date > end_date:
+                raise ValidationError("Начальная дата не может быть больше конечной")
+            return start_date, end_date
+        except ValueError as e:
+            raise ValidationError("Некорректный формат даты. Используйте YYYY-MM-DD") from e
 
 
 class StatusSerializer(serializers.ModelSerializer):
