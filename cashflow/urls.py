@@ -1,4 +1,5 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
 from . import views
 from .views import (
@@ -9,13 +10,25 @@ from .views import (
     get_subcategories, StatusListView, StatusCreateView, StatusUpdateView, StatusDeleteView, OperationTypeListView,
     OperationTypeCreateView, OperationTypeUpdateView, OperationTypeDeleteView, CategoryListView, CategoryCreateView,
     CategoryUpdateView, CategoryDeleteView, SubCategoryListView, SubCategoryCreateView, SubCategoryUpdateView,
-    SubCategoryDeleteView,
+    SubCategoryDeleteView, CashFlowViewSet, StatusViewSet, OperationTypeViewSet, CategoryViewSet, SubCategoryViewSet,
 )
 from cashflow.apps import CashflowConfig
 
 app_name = CashflowConfig.name
 
+# Создаем router и регистрируем ViewSet
+router = DefaultRouter()
+router.register(r'cashflows', CashFlowViewSet, basename='cashflow')
+router.register(r'statuses', StatusViewSet, basename='status')
+router.register(r'operation-types', OperationTypeViewSet, basename='operationtype')
+router.register(r'categories', CategoryViewSet, basename='category')
+router.register(r'subcategories', SubCategoryViewSet, basename='subcategory')
+
 urlpatterns = [
+
+    path('api/', include(router.urls)),
+
+
     # Главная страница со списком записей
     path('', CashFlowListView.as_view(), name='cashflow-list'),
 

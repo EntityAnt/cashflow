@@ -10,11 +10,13 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.db.models import QuerySet
 from typing import Any, Dict, Optional, List
 
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
 from .models import CashFlow, SubCategory, Status, OperationType, Category
 from .forms import CashFlowForm, OperationTypeForm, CategoryForm, SubCategoryForm
-from .serializers import CashFlowSerializer
+from .serializers import CashFlowSerializer, StatusSerializer, OperationTypeSerializer, CategorySerializer, \
+    SubCategorySerializer
 from .services import CashFlowValidator
 
 
@@ -316,3 +318,43 @@ class CashFlowViewSet(ModelViewSet):
         # Дополнительная обработка перед сохранением
         validated_data = CashFlowValidator.validate_all(serializer.validated_data)
         serializer.save(**validated_data)
+
+
+"""ViewSet для статуса операции"""
+
+
+class StatusViewSet(ModelViewSet):
+    queryset = Status.objects.all()
+    serializer_class = StatusSerializer
+    # permission_classes = [IsAuthenticated]
+    filterset_fields = ['name']
+
+
+"""ViewSet для типа операции"""
+
+
+class OperationTypeViewSet(ModelViewSet):
+    queryset = OperationType.objects.all()
+    serializer_class = OperationTypeSerializer
+    # permission_classes = [IsAuthenticated]
+    filterset_fields = ['name']
+
+
+"""ViewSet для категории"""
+
+
+class CategoryViewSet(ModelViewSet):
+    queryset = Category.objects.all().select_related('operation_type')
+    serializer_class = CategorySerializer
+    # permission_classes = [IsAuthenticated]
+    filterset_fields = ['name', 'operation_type']
+
+
+"""ViewSet для подкатегории"""
+
+
+class SubCategoryViewSet(ModelViewSet):
+    queryset = SubCategory.objects.all().select_related('category', 'category__operation_type')
+    serializer_class = SubCategorySerializer
+    # permission_classes = [IsAuthenticated]
+    filterset_fields = ['name', 'category']

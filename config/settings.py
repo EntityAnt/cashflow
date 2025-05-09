@@ -14,7 +14,6 @@ DEBUG = os.getenv("DEBUG", False) == "True"
 
 NULLABLE = {"blank": True, "null": True}
 
-
 ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS = [
@@ -25,6 +24,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'django_filters',
     'cashflow',
 ]
 
@@ -76,7 +76,6 @@ else:
         }
     }
 
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -91,6 +90,18 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
+    ],
+
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+}
 
 LANGUAGE_CODE = 'ru'
 
