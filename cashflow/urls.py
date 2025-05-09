@@ -28,7 +28,6 @@ urlpatterns = [
 
     path('api/', include(router.urls)),
 
-
     # Главная страница со списком записей
     path('', CashFlowListView.as_view(), name='cashflow-list'),
 
@@ -36,7 +35,6 @@ urlpatterns = [
     path('create/', CashFlowCreateView.as_view(), name='cashflow-create'),
     path('<int:pk>/edit/', CashFlowUpdateView.as_view(), name='cashflow-update'),
     path('<int:pk>/delete/', CashFlowDeleteView.as_view(), name='cashflow-delete'),
-
 
     # CRUD операции для статуса операций
     path('statuses/', StatusListView.as_view(), name='status-list'),
@@ -62,10 +60,8 @@ urlpatterns = [
     path('subcategories/<int:pk>/edit/', SubCategoryUpdateView.as_view(), name='subcategory-update'),
     path('subcategories/<int:pk>/delete/', SubCategoryDeleteView.as_view(), name='subcategory-delete'),
 
-
     # API endpoint для динамической загрузки
     path('get-categories/<int:operation_type_id>/', views.get_categories, name='get-categories'),
     path('get-subcategories/<int:category_id>/', get_subcategories, name='get-subcategories'),
-
 
 ]

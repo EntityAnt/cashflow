@@ -3,14 +3,14 @@ from datetime import datetime
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ValidationError
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, JsonResponse, HttpResponse
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.db.models import QuerySet
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Type
 
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.serializers import Serializer
 from rest_framework.viewsets import ModelViewSet
 
 from .models import CashFlow, SubCategory, Status, OperationType, Category
@@ -96,14 +96,17 @@ def get_subcategories(request: HttpRequest, category_id: int) -> JsonResponse:
     return JsonResponse(data, safe=False)
 
 
+
+
+
 class CashFlowCreateView(CreateView):
     """Представление для создания новой записи ДДС"""
-    model: CashFlow = CashFlow
-    form_class: CashFlowForm = CashFlowForm
+    model: Type[CashFlow] = CashFlow
+    form_class: Type[CashFlowForm] = CashFlowForm
     template_name: str = 'cashflow/cashflow_form.html'
     success_url: str = '/'
 
-    def form_valid(self, form: CashFlowForm) -> bool:
+    def form_valid(self, form: CashFlowForm) -> HttpResponse:
         """
         Обработка валидной формы.
 
@@ -111,9 +114,8 @@ class CashFlowCreateView(CreateView):
             form: Валидная форма CashFlowForm
 
         Returns:
-            bool: Результат обработки формы
+            HttpResponse: Результат обработки формы
         """
-        # Дополнительная обработка перед сохранением
         return super().form_valid(form)
 
 
@@ -122,15 +124,17 @@ class CashFlowDeleteView(LoginRequiredMixin, SuccessMessageMixin, DeleteView):
     Представление для удаления записи о движении денежных средств.
     Требует авторизации пользователя.
     """
-    model = CashFlow
-    success_url = reverse_lazy('cashflow:cashflow-list')  # URL для перенаправления после удаления
-    success_message = "Запись успешно удалена"
-    template_name = 'cashflow/cashflow_confirm_delete.html'  # Шаблон подтверждения удаления
+    model: Type[CashFlow] = CashFlow
+    success_url: str = reverse_lazy('cashflow:cashflow-list')
+    success_message: str = "Запись успешно удалена"
+    template_name: str = 'cashflow/cashflow_confirm_delete.html'
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[CashFlow]:
         """
         Возвращает QuerySet с дополнительными проверками прав доступа.
-        Для суперпользователей - все записи, для остальных - только свои.
+
+        Returns:
+            QuerySet[CashFlow]: Отфильтрованный queryset
         """
         queryset = super().get_queryset()
         if not self.request.user.is_superuser:
@@ -143,46 +147,44 @@ class CashFlowUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     Представление для редактирования существующей записи ДДС.
     Использует сервисный слой для валидации данных.
     """
-    model = CashFlow
-    form_class = CashFlowForm
-    template_name = 'cashflow/cashflow_form.html'
-    success_url = reverse_lazy('cashflow:cashflow-list')
-    success_message = "Запись успешно обновлена"
+    model: Type[CashFlow] = CashFlow
+    form_class: Type[CashFlowForm] = CashFlowForm
+    template_name: str = 'cashflow/cashflow_form.html'
+    success_url: str = reverse_lazy('cashflow:cashflow-list')
+    success_message: str = "Запись успешно обновлена"
 
-    def get_initial(self):
+    def get_initial(self) -> Dict[str, Any]:
         """Устанавливаем текущую дату по умолчанию для новой записи"""
         initial = super().get_initial()
         initial['date'] = timezone.now().date()
         return initial
 
-    def form_valid(self, form):
+    def form_valid(self, form: CashFlowForm) -> HttpResponse:
         """Привязываем запись к текущему пользователю"""
         form.instance.user = self.request.user
         return super().form_valid(form)
 
-    def get_queryset(self):
-        """Ограничиваем доступ только к своим записям (для обычных пользователей)"""
+    def get_queryset(self) -> QuerySet[CashFlow]:
+        """Ограничиваем доступ только к своим записям"""
         queryset = super().get_queryset()
         if not self.request.user.is_superuser:
             queryset = queryset.filter(user=self.request.user)
         return queryset
 
-    def get_context_data(self, **kwargs):
-        """Добавляем в поле дата текущую дату и контекст в заголовок страницы"""
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        """Добавляем дополнительные данные в контекст"""
         context = super().get_context_data(**kwargs)
         context['current_date'] = timezone.now().date()
         context['title'] = f"Редактирование записи #{self.object.id}"
         return context
 
-    def form_valid(self, form):
+    def form_valid(self, form: CashFlowForm) -> HttpResponse:
         """Дополнительная обработка перед сохранением"""
-        # Используем сервисный слой для валидации
         try:
             CashFlowValidator.validate_all(form.cleaned_data)
         except ValidationError as e:
             form.add_error(None, e)
             return self.form_invalid(form)
-
         return super().form_valid(form)
 
 
@@ -190,132 +192,129 @@ class CashFlowUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
 
 
 class StatusListView(ListView):
-    model = Status
-    template_name = 'cashflow/status_list.html'
-    context_object_name = 'statuses'
+    model: Type[Status] = Status
+    template_name: str = 'cashflow/status_list.html'
+    context_object_name: str = 'statuses'
 
 
 class StatusCreateView(CreateView):
-    model = Status
-    fields = ['name']
-    template_name = 'cashflow/status_form.html'
-    success_url = reverse_lazy('cashflow:status-list')
+    model: Type[Status] = Status
+    fields: list[str] = ['name']
+    template_name: str = 'cashflow/status_form.html'
+    success_url: str = reverse_lazy('cashflow:status-list')
 
 
 class StatusUpdateView(UpdateView):
-    model = Status
-    fields = ['name']
-    template_name = 'cashflow/status_form.html'
-    success_url = reverse_lazy('cashflow:status-list')
+    model: Type[Status] = Status
+    fields: list[str] = ['name']
+    template_name: str = 'cashflow/status_form.html'
+    success_url: str = reverse_lazy('cashflow:status-list')
 
 
 class StatusDeleteView(DeleteView):
-    model = Status
-    template_name = 'cashflow/status_confirm_delete.html'
-    success_url = reverse_lazy('cashflow:status-list')
+    model: Type[Status] = Status
+    template_name: str = 'cashflow/status_confirm_delete.html'
+    success_url: str = reverse_lazy('cashflow:status-list')
 
 
 """CRUD для типа операций"""
 
 
 class OperationTypeListView(ListView):
-    model = OperationType
-    template_name = 'cashflow/operationtype_list.html'
-    context_object_name = 'operation_types'
+    model: Type[OperationType] = OperationType
+    template_name: str = 'cashflow/operationtype_list.html'
+    context_object_name: str = 'operation_types'
 
 
 class OperationTypeCreateView(CreateView):
-    model = OperationType
-    form_class = OperationTypeForm
-    template_name = 'cashflow/operationtype_form.html'
-    success_url = reverse_lazy('cashflow:operationtype-list')
+    model: Type[OperationType] = OperationType
+    form_class: Type[OperationTypeForm] = OperationTypeForm
+    template_name: str = 'cashflow/operationtype_form.html'
+    success_url: str = reverse_lazy('cashflow:operationtype-list')
 
 
 class OperationTypeUpdateView(UpdateView):
-    model = OperationType
-    form_class = OperationTypeForm
-    template_name = 'cashflow/operationtype_form.html'
-    success_url = reverse_lazy('cashflow:operationtype-list')
+    model: Type[OperationType] = OperationType
+    form_class: Type[OperationTypeForm] = OperationTypeForm
+    template_name: str = 'cashflow/operationtype_form.html'
+    success_url: str = reverse_lazy('cashflow:operationtype-list')
 
 
 class OperationTypeDeleteView(DeleteView):
-    model = OperationType
-    template_name = 'cashflow/operationtype_confirm_delete.html'
-    success_url = reverse_lazy('cashflow:operationtype-list')
+    model: Type[OperationType] = OperationType
+    template_name: str = 'cashflow/operationtype_confirm_delete.html'
+    success_url: str = reverse_lazy('cashflow:operationtype-list')
 
 
 """CRUD для категорий"""
 
 
-# Category Views
 class CategoryListView(ListView):
-    model = Category
-    template_name = 'cashflow/category_list.html'
-    context_object_name = 'categories'
+    model: Type[Category] = Category
+    template_name: str = 'cashflow/category_list.html'
+    context_object_name: str = 'categories'
 
 
 class CategoryCreateView(CreateView):
-    model = Category
-    form_class = CategoryForm
-    template_name = 'cashflow/category_form.html'
-    success_url = reverse_lazy('cashflow:category-list')
+    model: Type[Category] = Category
+    form_class: Type[CategoryForm] = CategoryForm
+    template_name: str = 'cashflow/category_form.html'
+    success_url: str = reverse_lazy('cashflow:category-list')
 
 
 class CategoryUpdateView(UpdateView):
-    model = Category
-    form_class = CategoryForm
-    template_name = 'cashflow/category_form.html'
-    success_url = reverse_lazy('cashflow:category-list')
+    model: Type[Category] = Category
+    form_class: Type[CategoryForm] = CategoryForm
+    template_name: str = 'cashflow/category_form.html'
+    success_url: str = reverse_lazy('cashflow:category-list')
 
 
 class CategoryDeleteView(DeleteView):
-    model = Category
-    template_name = 'cashflow/category_confirm_delete.html'
-    success_url = reverse_lazy('cashflow:category-list')
+    model: Type[Category] = Category
+    template_name: str = 'cashflow/category_confirm_delete.html'
+    success_url: str = reverse_lazy('cashflow:category-list')
 
 
 """CRUD для подкатегорий"""
 
 
-# SubCategory Views
 class SubCategoryListView(ListView):
-    model = SubCategory
-    template_name = 'cashflow/subcategory_list.html'
-    context_object_name = 'subcategories'
+    model: Type[SubCategory] = SubCategory
+    template_name: str = 'cashflow/subcategory_list.html'
+    context_object_name: str = 'subcategories'
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[SubCategory]:
         return super().get_queryset().select_related('category', 'category__operation_type')
 
 
 class SubCategoryCreateView(CreateView):
-    model = SubCategory
-    form_class = SubCategoryForm
-    template_name = 'cashflow/subcategory_form.html'
-    success_url = reverse_lazy('cashflow:subcategory-list')
+    model: Type[SubCategory] = SubCategory
+    form_class: Type[SubCategoryForm] = SubCategoryForm
+    template_name: str = 'cashflow/subcategory_form.html'
+    success_url: str = reverse_lazy('cashflow:subcategory-list')
 
 
 class SubCategoryUpdateView(UpdateView):
-    model = SubCategory
-    form_class = SubCategoryForm
-    template_name = 'cashflow/subcategory_form.html'
-    success_url = reverse_lazy('cashflow:subcategory-list')
+    model: Type[SubCategory] = SubCategory
+    form_class: Type[SubCategoryForm] = SubCategoryForm
+    template_name: str = 'cashflow/subcategory_form.html'
+    success_url: str = reverse_lazy('cashflow:subcategory-list')
 
 
 class SubCategoryDeleteView(DeleteView):
-    model = SubCategory
-    template_name = 'cashflow/subcategory_confirm_delete.html'
-    success_url = reverse_lazy('cashflow:subcategory-list')
+    model: Type[SubCategory] = SubCategory
+    template_name: str = 'cashflow/subcategory_confirm_delete.html'
+    success_url: str = reverse_lazy('cashflow:subcategory-list')
 
 
-"""ViewSet для ДДС """
+"""ViewSet для ДДС"""
 
 
 class CashFlowViewSet(ModelViewSet):
-    queryset = CashFlow.objects.all()
-    serializer_class = CashFlowSerializer
+    queryset: QuerySet[CashFlow] = CashFlow.objects.all()
+    serializer_class: Type[Serializer] = CashFlowSerializer
 
-    def perform_create(self, serializer):
-        # Дополнительная обработка перед сохранением
+    def perform_create(self, serializer: Serializer) -> None:
         validated_data = CashFlowValidator.validate_all(serializer.validated_data)
         serializer.save(**validated_data)
 
@@ -324,37 +323,33 @@ class CashFlowViewSet(ModelViewSet):
 
 
 class StatusViewSet(ModelViewSet):
-    queryset = Status.objects.all()
-    serializer_class = StatusSerializer
-    # permission_classes = [IsAuthenticated]
-    filterset_fields = ['name']
+    queryset: QuerySet[Status] = Status.objects.all()
+    serializer_class: Type[Serializer] = StatusSerializer
+    filterset_fields: list[str] = ['name']
 
 
 """ViewSet для типа операции"""
 
 
 class OperationTypeViewSet(ModelViewSet):
-    queryset = OperationType.objects.all()
-    serializer_class = OperationTypeSerializer
-    # permission_classes = [IsAuthenticated]
-    filterset_fields = ['name']
+    queryset: QuerySet[OperationType] = OperationType.objects.all()
+    serializer_class: Type[Serializer] = OperationTypeSerializer
+    filterset_fields: list[str] = ['name']
 
 
 """ViewSet для категории"""
 
 
 class CategoryViewSet(ModelViewSet):
-    queryset = Category.objects.all().select_related('operation_type')
-    serializer_class = CategorySerializer
-    # permission_classes = [IsAuthenticated]
-    filterset_fields = ['name', 'operation_type']
+    queryset: QuerySet[Category] = Category.objects.all().select_related('operation_type')
+    serializer_class: Type[Serializer] = CategorySerializer
+    filterset_fields: list[str] = ['name', 'operation_type']
 
 
 """ViewSet для подкатегории"""
 
 
 class SubCategoryViewSet(ModelViewSet):
-    queryset = SubCategory.objects.all().select_related('category', 'category__operation_type')
-    serializer_class = SubCategorySerializer
-    # permission_classes = [IsAuthenticated]
-    filterset_fields = ['name', 'category']
+    queryset: QuerySet[SubCategory] = SubCategory.objects.all().select_related('category', 'category__operation_type')
+    serializer_class: Type[Serializer] = SubCategorySerializer
+    filterset_fields: list[str] = ['name', 'category']

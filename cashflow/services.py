@@ -1,8 +1,8 @@
 from datetime import date
-from django.utils import timezone
+from typing import Any, Dict
+
 from django.core.exceptions import ValidationError
-from typing import Dict, Any
-from .models import Category, SubCategory
+from django.utils import timezone
 
 
 class CashFlowValidator:
@@ -28,8 +28,8 @@ class CashFlowValidator:
 
     @staticmethod
     def validate_category_relations(
-            category: Category,
-            subcategory: SubCategory
+            category: 'Category',
+            subcategory: 'SubCategory'
     ) -> None:
         """Валидация связей категория-подкатегория"""
         if category and subcategory and subcategory.category != category:

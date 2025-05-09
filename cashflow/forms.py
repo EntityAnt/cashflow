@@ -1,30 +1,28 @@
-from django import forms
 from typing import Any, Dict
-
-from django.forms import BooleanField, ImageField, ModelForm
+from django import forms
+from django.forms import BooleanField, ImageField
 from django.utils import timezone
-
-from .models import CashFlow, OperationType, Category, SubCategory
-from .services import CashFlowValidator
+from cashflow.models import CashFlow, SubCategory, OperationType, Category
+from cashflow.services import CashFlowValidator
 
 
 class StyleFormMixin:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        for fild_name, fild in self.fields.items():
-            if isinstance(fild, BooleanField):
-                fild.widget.attrs["class"] = "form-check-input"
-            elif isinstance(fild, ImageField):
-                fild.widget.attrs["class"] = "form-control-file"
+        for field_name, field in self.fields.items():
+            if isinstance(field, BooleanField):
+                field.widget.attrs["class"] = "form-check-input"
+            elif isinstance(field, ImageField):
+                field.widget.attrs["class"] = "form-control-file"
             else:
-                fild.widget.attrs["class"] = "form-control"
+                field.widget.attrs["class"] = "form-control"
 
 
-class CashFlowForm(StyleFormMixin, ModelForm):
+class CashFlowForm(StyleFormMixin, forms.ModelForm):
     """
-        Форма для создания и редактирования записей ДДС.
-        Использует сервисный слой для валидации.
-        """
+    Форма для создания и редактирования записей ДДС.
+    Использует сервисный слой для валидации.
+    """
 
     class Meta:
         model = CashFlow
@@ -72,8 +70,8 @@ class OperationTypeForm(forms.ModelForm):
         fields = ['name']
         labels = {'name': 'Название типа*'}
 
-    def clean_name(self):
-        name = self.cleaned_data['name']
+    def clean_name(self) -> str:
+        name: str = self.cleaned_data['name']
         if OperationType.objects.filter(name__iexact=name).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError("Тип операции с таким названием уже существует")
         return name
@@ -87,10 +85,14 @@ class CategoryForm(forms.ModelForm):
             'name': 'Название категории*',
             'operation_type': 'Тип операции*'
         }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'operation_type': forms.Select(attrs={'class': 'form-select'}),
+        }
 
-    def clean_name(self):
-        name = self.cleaned_data['name']
-        operation_type = self.cleaned_data.get('operation_type')
+    def clean_name(self) -> str:
+        name: str = self.cleaned_data['name']
+        operation_type: OperationType = self.cleaned_data.get('operation_type')
         if operation_type and Category.objects.filter(
                 name__iexact=name,
                 operation_type=operation_type
@@ -108,12 +110,13 @@ class SubCategoryForm(forms.ModelForm):
             'category': 'Категория*'
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-
         # Всегда показываем все категории
         self.fields['category'].queryset = Category.objects.all().select_related('operation_type')
 
         # Если форма привязана к существующему объекту
         if self.instance and self.instance.pk:
             self.fields['category'].initial = self.instance.category
+
+
