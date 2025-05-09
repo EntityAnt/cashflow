@@ -1,16 +1,17 @@
 from datetime import date
+from typing import Any, Dict, Type
 
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
-from .models import CashFlow, Status, OperationType, Category, SubCategory
+
+from .models import CashFlow, Category, OperationType, Status, SubCategory
 from .services import CashFlowValidator
-from typing import Dict, Any, Type
 
 
 class CashFlowSerializer(serializers.ModelSerializer):
     class Meta:
         model: Type[CashFlow] = CashFlow
-        fields: str = '__all__'
+        fields: str = "__all__"
 
     def validate(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -38,13 +39,15 @@ class CashFlowSerializer(serializers.ModelSerializer):
                 raise ValidationError("Начальная дата не может быть больше конечной")
             return start_date, end_date
         except ValueError as e:
-            raise ValidationError("Некорректный формат даты. Используйте YYYY-MM-DD") from e
+            raise ValidationError(
+                "Некорректный формат даты. Используйте YYYY-MM-DD"
+            ) from e
 
 
 class StatusSerializer(serializers.ModelSerializer):
     class Meta:
         model: Type[Status] = Status
-        fields: str = '__all__'
+        fields: str = "__all__"
 
     def validate_name(self, value: str) -> str:
         """
@@ -67,7 +70,7 @@ class StatusSerializer(serializers.ModelSerializer):
 class OperationTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model: Type[OperationType] = OperationType
-        fields: str = '__all__'
+        fields: str = "__all__"
 
     def validate_name(self, value: str) -> str:
         """
@@ -83,21 +86,21 @@ class OperationTypeSerializer(serializers.ModelSerializer):
             serializers.ValidationError: Если тип операции с таким именем уже существует
         """
         if OperationType.objects.filter(name__iexact=value).exists():
-            raise serializers.ValidationError("Тип операции с таким названием уже существует")
+            raise serializers.ValidationError(
+                "Тип операции с таким названием уже существует"
+            )
         return value
 
 
 class CategorySerializer(serializers.ModelSerializer):
     operation_type_name: serializers.CharField = serializers.CharField(
-        source='operation_type.name',
-        read_only=True,
-        help_text="Название типа операции"
+        source="operation_type.name", read_only=True, help_text="Название типа операции"
     )
 
     class Meta:
         model: Type[Category] = Category
-        fields: list[str] = '__all__'
-        extra_fields: list[str] = ['operation_type_name']
+        fields: list[str] = "__all__"
+        extra_fields: list[str] = ["operation_type_name"]
 
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -112,36 +115,37 @@ class CategorySerializer(serializers.ModelSerializer):
         Raises:
             serializers.ValidationError: Если категория с таким именем уже существует для данного типа
         """
-        name = attrs.get('name')
-        operation_type = attrs.get('operation_type')
+        name = attrs.get("name")
+        operation_type = attrs.get("operation_type")
 
         if name and operation_type:
             if Category.objects.filter(
-                    name__iexact=name,
-                    operation_type=operation_type
+                name__iexact=name, operation_type=operation_type
             ).exists():
                 raise serializers.ValidationError(
-                    {"name": "Категория с таким названием уже существует для этого типа операции"}
+                    {
+                        "name": "Категория с таким названием уже существует для этого типа операции"
+                    }
                 )
         return attrs
 
 
 class SubCategorySerializer(serializers.ModelSerializer):
     category_name: serializers.CharField = serializers.CharField(
-        source='category.name',
+        source="category.name",
         read_only=True,
-        help_text="Название родительской категории"
+        help_text="Название родительской категории",
     )
     operation_type_name: serializers.CharField = serializers.CharField(
-        source='category.operation_type.name',
+        source="category.operation_type.name",
         read_only=True,
-        help_text="Название типа операции родительской категории"
+        help_text="Название типа операции родительской категории",
     )
 
     class Meta:
         model: Type[SubCategory] = SubCategory
-        fields: list[str] = '__all__'
-        extra_fields: list[str] = ['category_name', 'operation_type_name']
+        fields: list[str] = "__all__"
+        extra_fields: list[str] = ["category_name", "operation_type_name"]
 
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -156,15 +160,16 @@ class SubCategorySerializer(serializers.ModelSerializer):
         Raises:
             serializers.ValidationError: Если подкатегория с таким именем уже существует для данной категории
         """
-        name = attrs.get('name')
-        category = attrs.get('category')
+        name = attrs.get("name")
+        category = attrs.get("category")
 
         if name and category:
             if SubCategory.objects.filter(
-                    name__iexact=name,
-                    category=category
+                name__iexact=name, category=category
             ).exists():
                 raise serializers.ValidationError(
-                    {"name": "Подкатегория с таким названием уже существует для этой категории"}
+                    {
+                        "name": "Подкатегория с таким названием уже существует для этой категории"
+                    }
                 )
         return attrs
