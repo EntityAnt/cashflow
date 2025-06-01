@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Any, Dict, Type
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
@@ -15,13 +14,16 @@ from rest_framework.serializers import Serializer
 from rest_framework.viewsets import ModelViewSet
 
 from . import serializers
-from .forms import (CashFlowForm, CategoryForm, OperationTypeForm,
-                    SubCategoryForm)
+from .forms import CashFlowForm, CategoryForm, OperationTypeForm, SubCategoryForm
 from .models import CashFlow, Category, OperationType, Status, SubCategory
-from .serializers import (CashFlowSerializer, CategorySerializer,
-                          OperationTypeSerializer, StatusSerializer,
-                          SubCategorySerializer)
-from .services import CashFlowValidator
+from .serializers import (
+    CashFlowSerializer,
+    CategorySerializer,
+    OperationTypeSerializer,
+    StatusSerializer,
+    SubCategorySerializer,
+)
+from .services.validators import CashFlowValidator
 
 
 class CashFlowListView(ListView):
@@ -62,7 +64,7 @@ class CashFlowListView(ListView):
 
         return queryset
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+    def get_context_data(self, **kwargs: any) -> dict[str, any]:
         """
         Добавляет в контекст данные для фильтров.
 
@@ -70,9 +72,9 @@ class CashFlowListView(ListView):
             **kwargs: Дополнительные аргументы контекста
 
         Returns:
-            Dict[str, Any]: Контекст шаблона с дополнительными данными
+            dict[str, any]: Контекст шаблона с дополнительными данными
         """
-        context: Dict[str, Any] = super().get_context_data(**kwargs)
+        context: dict[str, any] = super().get_context_data(**kwargs)
         context["statuses"] = Status.objects.all()
         context["operation_types"] = OperationType.objects.all()
         context["current_sort"] = self.request.GET.get("sort", "")
@@ -106,8 +108,8 @@ def get_subcategories(request: HttpRequest, category_id: int) -> JsonResponse:
 class CashFlowCreateView(CreateView):
     """Представление для создания новой записи ДДС"""
 
-    model: Type[CashFlow] = CashFlow
-    form_class: Type[CashFlowForm] = CashFlowForm
+    model: CashFlow = CashFlow
+    form_class: CashFlowForm = CashFlowForm
     template_name: str = "cashflow/cashflow_form.html"
     success_url: str = "/"
 
@@ -130,7 +132,7 @@ class CashFlowDeleteView(LoginRequiredMixin, SuccessMessageMixin, DeleteView):
     Требует авторизации пользователя.
     """
 
-    model: Type[CashFlow] = CashFlow
+    model: CashFlow = CashFlow
     success_url: str = reverse_lazy("cashflow:cashflow-list")
     success_message: str = "Запись успешно удалена"
     template_name: str = "cashflow/cashflow_confirm_delete.html"
@@ -154,13 +156,13 @@ class CashFlowUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     Использует сервисный слой для валидации данных.
     """
 
-    model: Type[CashFlow] = CashFlow
-    form_class: Type[CashFlowForm] = CashFlowForm
+    model: CashFlow = CashFlow
+    form_class: CashFlowForm = CashFlowForm
     template_name: str = "cashflow/cashflow_form.html"
     success_url: str = reverse_lazy("cashflow:cashflow-list")
     success_message: str = "Запись успешно обновлена"
 
-    def get_initial(self) -> Dict[str, Any]:
+    def get_initial(self) -> dict[str, any]:
         """Устанавливаем текущую дату по умолчанию для новой записи"""
         initial = super().get_initial()
         initial["date"] = timezone.now().date()
@@ -173,7 +175,7 @@ class CashFlowUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
             queryset = queryset.filter(user=self.request.user)
         return queryset
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+    def get_context_data(self, **kwargs: any) -> dict[str, any]:
         """Добавляем дополнительные данные в контекст"""
         context = super().get_context_data(**kwargs)
         context["current_date"] = timezone.now().date()
@@ -197,12 +199,13 @@ class CashFlowUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
 class StatusListView(ListView):
     """Представление для отображения списка всех статусов.
 
-        Attributes:
-            model: Модель Status для отображения.
-            template_name: Путь к шаблону страницы списка статусов.
-            context_object_name: Имя переменной контекста для списка статусов.
+    Attributes:
+        model: Модель Status для отображения.
+        template_name: Путь к шаблону страницы списка статусов.
+        context_object_name: Имя переменной контекста для списка статусов.
     """
-    model: Type[Status] = Status
+
+    model: Status = Status
     template_name: str = "cashflow/status_list.html"
     context_object_name: str = "statuses"
 
@@ -210,13 +213,14 @@ class StatusListView(ListView):
 class StatusCreateView(CreateView):
     """Представление для создания нового статуса.
 
-        Attributes:
-            model: Модель Status для создания.
-            fields: Поля модели, доступные для редактирования.
-            template_name: Путь к шаблону формы создания.
-            success_url: URL для перенаправления после успешного создания.
+    Attributes:
+        model: Модель Status для создания.
+        fields: Поля модели, доступные для редактирования.
+        template_name: Путь к шаблону формы создания.
+        success_url: URL для перенаправления после успешного создания.
     """
-    model: Type[Status] = Status
+
+    model: Status = Status
     fields: list[str] = ["name"]
     template_name: str = "cashflow/status_form.html"
     success_url: str = reverse_lazy("cashflow:status-list")
@@ -225,13 +229,14 @@ class StatusCreateView(CreateView):
 class StatusUpdateView(UpdateView):
     """Представление для редактирования существующего статуса.
 
-        Attributes:
-            model: Модель Status для редактирования.
-            fields: Поля модели, доступные для редактирования.
-            template_name: Путь к шаблону формы редактирования.
-            success_url: URL для перенаправления после успешного обновления.
+    Attributes:
+        model: Модель Status для редактирования.
+        fields: Поля модели, доступные для редактирования.
+        template_name: Путь к шаблону формы редактирования.
+        success_url: URL для перенаправления после успешного обновления.
     """
-    model: Type[Status] = Status
+
+    model: Status = Status
     fields: list[str] = ["name"]
     template_name: str = "cashflow/status_form.html"
     success_url: str = reverse_lazy("cashflow:status-list")
@@ -240,12 +245,13 @@ class StatusUpdateView(UpdateView):
 class StatusDeleteView(DeleteView):
     """Представление для удаления статуса.
 
-        Attributes:
-            model: Модель Status для удаления.
-            template_name: Путь к шаблону подтверждения удаления.
-            success_url: URL для перенаправления после успешного удаления.
+    Attributes:
+        model: Модель Status для удаления.
+        template_name: Путь к шаблону подтверждения удаления.
+        success_url: URL для перенаправления после успешного удаления.
     """
-    model: Type[Status] = Status
+
+    model: Status = Status
     template_name: str = "cashflow/status_confirm_delete.html"
     success_url: str = reverse_lazy("cashflow:status-list")
 
@@ -256,21 +262,22 @@ class StatusDeleteView(DeleteView):
 class OperationTypeListView(ListView):
     """Представление для отображения списка типов операций.
 
-        Отображает все доступные типы операций (доходы/расходы) в систематизированном виде.
-        Шаблон включает пагинацию и возможности сортировки.
+    Отображает все доступные типы операций (доходы/расходы) в систематизированном виде.
+    Шаблон включает пагинацию и возможности сортировки.
 
-        Attributes:
-            model (Type[OperationType]): Модель OperationType для отображения.
-            template_name (str): Путь к шаблону 'cashflow/operationtype_list.html'.
-            context_object_name (str): Имя переменной контекста 'operation_types'.
+    Attributes:
+        model (OperationType): Модель OperationType для отображения.
+        template_name (str): Путь к шаблону 'cashflow/operationtype_list.html'.
+        context_object_name (str): Имя переменной контекста 'operation_types'.
 
-        Example:
-            Доступ через URL: /operation-types/
-            Контекст шаблона содержит:
-            - operation_types: QuerySet всех типов операций
-            - is_paginated: Флаг пагинации
+    Example:
+        Доступ через URL: /operation-types/
+        Контекст шаблона содержит:
+        - operation_types: QuerySet всех типов операций
+        - is_paginated: Флаг пагинации
     """
-    model: Type[OperationType] = OperationType
+
+    model: OperationType = OperationType
     template_name: str = "cashflow/operationtype_list.html"
     context_object_name: str = "operation_types"
 
@@ -278,21 +285,22 @@ class OperationTypeListView(ListView):
 class OperationTypeCreateView(CreateView):
     """Представление для создания нового типа операции.
 
-        Обеспечивает валидацию уникальности имени типа операции через связанную форму.
-        После успешного создания перенаправляет на список типов операций.
+    Обеспечивает валидацию уникальности имени типа операции через связанную форму.
+    После успешного создания перенаправляет на список типов операций.
 
-        Attributes:
-            model (Type[OperationType]): Модель OperationType.
-            form_class (Type[OperationTypeForm]): Кастомная форма валидации.
-            template_name (str): Путь к шаблону 'cashflow/operationtype_form.html'.
-            success_url (str): URL перенаправления после создания.
+    Attributes:
+        model (OperationType): Модель OperationType.
+        form_class (OperationTypeForm): Кастомная форма валидации.
+        template_name (str): Путь к шаблону 'cashflow/operationtype_form.html'.
+        success_url (str): URL перенаправления после создания.
 
-        Notes:
-            - Автоматически проверяет уникальность имени операции
-            - Логирует создание новых типов операций
+    Notes:
+        - Автоматически проверяет уникальность имени операции
+        - Логирует создание новых типов операций
     """
-    model: Type[OperationType] = OperationType
-    form_class: Type[OperationTypeForm] = OperationTypeForm
+
+    model: OperationType = OperationType
+    form_class: OperationTypeForm = OperationTypeForm
     template_name: str = "cashflow/operationtype_form.html"
     success_url: str = reverse_lazy("cashflow:operationtype-list")
 
@@ -300,20 +308,21 @@ class OperationTypeCreateView(CreateView):
 class OperationTypeUpdateView(UpdateView):
     """Представление для редактирования существующего типа операции.
 
-        Использует ту же форму валидации, что и при создании.
-        Запрещает изменение типа операции, если с ним связаны существующие записи.
+    Использует ту же форму валидации, что и при создании.
+    Запрещает изменение типа операции, если с ним связаны существующие записи.
 
-        Attributes:
-            model (Type[OperationType]): Модель OperationType.
-            form_class (Type[OperationTypeForm]): Кастомная форма валидации.
-            template_name (str): Путь к шаблону формы.
-            success_url (str): URL перенаправления после обновления.
+    Attributes:
+        model (OperationType): Модель OperationType.
+        form_class (OperationTypeForm): Кастомная форма валидации.
+        template_name (str): Путь к шаблону формы.
+        success_url (str): URL перенаправления после обновления.
 
-        Raises:
-            PermissionDenied: При попытке изменить системные типы операций
+    Raises:
+        PermissionDenied: При попытке изменить системные типы операций
     """
-    model: Type[OperationType] = OperationType
-    form_class: Type[OperationTypeForm] = OperationTypeForm
+
+    model: OperationType = OperationType
+    form_class: OperationTypeForm = OperationTypeForm
     template_name: str = "cashflow/operationtype_form.html"
     success_url: str = reverse_lazy("cashflow:operationtype-list")
 
@@ -321,24 +330,25 @@ class OperationTypeUpdateView(UpdateView):
 class OperationTypeDeleteView(DeleteView):
     """Представление для удаления типа операции.
 
-        Выполняет проверку связанных объектов перед удалением.
-        Показывает подтверждающую страницу перед выполнением удаления.
+    Выполняет проверку связанных объектов перед удалением.
+    Показывает подтверждающую страницу перед выполнением удаления.
 
-        Attributes:
-            model (Type[OperationType]): Модель OperationType.
-            template_name (str): Путь к шаблону подтверждения.
-            success_url (str): URL перенаправления после удаления.
+    Attributes:
+        model (OperationType): Модель OperationType.
+        template_name (str): Путь к шаблону подтверждения.
+        success_url (str): URL перенаправления после удаления.
 
-        Notes:
-            - Не позволяет удалить тип операции с привязанными категориями
-            - Добавляет сообщение об успешном удалении
-            - Логирует операцию удаления
+    Notes:
+        - Не позволяет удалить тип операции с привязанными категориями
+        - Добавляет сообщение об успешном удалении
+        - Логирует операцию удаления
 
-        Template Context:
-            - object: Удаляемый тип операции
-            - related_objects: Связанные объекты (если есть)
+    Template Context:
+        - object: Удаляемый тип операции
+        - related_objects: Связанные объекты (если есть)
     """
-    model: Type[OperationType] = OperationType
+
+    model: OperationType = OperationType
     template_name: str = "cashflow/operationtype_confirm_delete.html"
     success_url: str = reverse_lazy("cashflow:operationtype-list")
 
@@ -353,7 +363,7 @@ class CategoryListView(ListView):
     Поддерживает пагинацию и сортировку по имени или типу операции.
 
     Attributes:
-        model (Type[Category]): Модель Category для отображения.
+        model (Category): Модель Category для отображения.
         template_name (str): Путь к шаблону 'cashflow/category_list.html'.
         context_object_name (str): Имя переменной контекста 'categories'.
 
@@ -365,7 +375,8 @@ class CategoryListView(ListView):
         categories: QuerySet всех категорий с аннотацией subcategories_count
         operation_types: Список типов операций для фильтрации
     """
-    model: Type[Category] = Category
+
+    model: Category = Category
     template_name: str = "cashflow/category_list.html"
     context_object_name: str = "categories"
 
@@ -377,8 +388,8 @@ class CategoryCreateView(CreateView):
     Автоматически связывает созданную категорию с текущим пользователем.
 
     Attributes:
-        model (Type[Category]): Модель Category.
-        form_class (Type[CategoryForm]): Кастомная форма с дополнительной валидацией.
+        model (Category): Модель Category.
+        form_class (CategoryForm): Кастомная форма с дополнительной валидацией.
         template_name (str): Путь к шаблону 'cashflow/category_form.html'.
         success_url (str): URL для перенаправления после создания.
 
@@ -389,8 +400,9 @@ class CategoryCreateView(CreateView):
         - Автоматически устанавливает created_by при создании
         - Отправляет сигнал post_save при успешном создании
     """
-    model: Type[Category] = Category
-    form_class: Type[CategoryForm] = CategoryForm
+
+    model: Category = Category
+    form_class: CategoryForm = CategoryForm
     template_name: str = "cashflow/category_form.html"
     success_url: str = reverse_lazy("cashflow:category-list")
 
@@ -402,8 +414,8 @@ class CategoryUpdateView(UpdateView):
     Запрещает изменение типа операции при наличии связанных подкатегорий.
 
     Attributes:
-        model (Type[Category]): Модель Category.
-        form_class (Type[CategoryForm]): Кастомная форма валидации.
+        model (Category): Модель Category.
+        form_class (CategoryForm): Кастомная форма валидации.
         template_name (str): Путь к шаблону формы.
         success_url (str): URL перенаправления после обновления.
 
@@ -414,8 +426,9 @@ class CategoryUpdateView(UpdateView):
     Methods:
         get_object(): Проверяет права доступа к объекту.
     """
-    model: Type[Category] = Category
-    form_class: Type[CategoryForm] = CategoryForm
+
+    model: Category = Category
+    form_class: CategoryForm = CategoryForm
     template_name: str = "cashflow/category_form.html"
     success_url: str = reverse_lazy("cashflow:category-list")
 
@@ -427,7 +440,7 @@ class CategoryDeleteView(DeleteView):
     Показывает подробное подтверждение с информацией о последствиях удаления.
 
     Attributes:
-        model (Type[Category]): Модель Category.
+        model (Category): Модель Category.
         template_name (str): Путь к шаблону 'cashflow/category_confirm_delete.html'.
         success_url (str): URL перенаправления после удаления.
 
@@ -439,7 +452,8 @@ class CategoryDeleteView(DeleteView):
         protected_objects: Список защищенных от удаления связанных объектов
         deletable_objects: Список объектов, которые будут удалены каскадно
     """
-    model: Type[Category] = Category
+
+    model: Category = Category
     template_name: str = "cashflow/category_confirm_delete.html"
     success_url: str = reverse_lazy("cashflow:category-list")
 
@@ -458,7 +472,7 @@ class SubCategoryListView(ListView):
     — Имя переменной контекста: subcategories.
     """
 
-    model: Type[SubCategory] = SubCategory
+    model: SubCategory = SubCategory
     template_name: str = "cashflow/subcategory_list.html"
     context_object_name: str = "subcategories"
 
@@ -484,8 +498,8 @@ class SubCategoryCreateView(CreateView):
     — После успешного создания перенаправляет на список подкатегорий.
     """
 
-    model: Type[SubCategory] = SubCategory
-    form_class: Type[SubCategoryForm] = SubCategoryForm
+    model: SubCategory = SubCategory
+    form_class: SubCategoryForm = SubCategoryForm
     template_name: str = "cashflow/subcategory_form.html"
     success_url: str = reverse_lazy("cashflow:subcategory-list")
 
@@ -500,8 +514,8 @@ class SubCategoryUpdateView(UpdateView):
     — После успешного изменения перенаправляет на список подкатегорий.
     """
 
-    model: Type[SubCategory] = SubCategory
-    form_class: Type[SubCategoryForm] = SubCategoryForm
+    model: SubCategory = SubCategory
+    form_class: SubCategoryForm = SubCategoryForm
     template_name: str = "cashflow/subcategory_form.html"
     success_url: str = reverse_lazy("cashflow:subcategory-list")
 
@@ -516,17 +530,19 @@ class SubCategoryDeleteView(DeleteView):
     — После подтверждения удаления перенаправляет на список подкатегорий.
     """
 
-    model: Type[SubCategory] = SubCategory
+    model: SubCategory = SubCategory
     template_name: str = "cashflow/subcategory_confirm_delete.html"
     success_url: str = reverse_lazy("cashflow:subcategory-list")
 
 
 # ViewSets
 
+
 class CashFlowViewSet(ModelViewSet):
-    """ ViewSet для ДДС """
+    """ViewSet для ДДС"""
+
     queryset: QuerySet[CashFlow] = CashFlow.objects.all()
-    serializer_class: Type[Serializer] = CashFlowSerializer
+    serializer_class: Serializer = CashFlowSerializer
 
     def get_queryset(self) -> QuerySet[CashFlow]:
         queryset = super().get_queryset()
@@ -572,31 +588,35 @@ class CashFlowViewSet(ModelViewSet):
 
 class StatusViewSet(ModelViewSet):
     """ViewSet для статуса операции"""
+
     queryset: QuerySet[Status] = Status.objects.all()
-    serializer_class: Type[Serializer] = StatusSerializer
+    serializer_class: Serializer = StatusSerializer
     filterset_fields: list[str] = ["name"]
 
 
 class OperationTypeViewSet(ModelViewSet):
     """ViewSet для типа операции"""
+
     queryset: QuerySet[OperationType] = OperationType.objects.all()
-    serializer_class: Type[Serializer] = OperationTypeSerializer
+    serializer_class: Serializer = OperationTypeSerializer
     filterset_fields: list[str] = ["name"]
 
 
 class CategoryViewSet(ModelViewSet):
     """ViewSet для категории"""
+
     queryset: QuerySet[Category] = Category.objects.all().select_related(
         "operation_type"
     )
-    serializer_class: Type[Serializer] = CategorySerializer
+    serializer_class: Serializer = CategorySerializer
     filterset_fields: list[str] = ["name", "operation_type"]
 
 
 class SubCategoryViewSet(ModelViewSet):
     """ViewSet для подкатегории"""
+
     queryset: QuerySet[SubCategory] = SubCategory.objects.all().select_related(
         "category", "category__operation_type"
     )
-    serializer_class: Type[Serializer] = SubCategorySerializer
+    serializer_class: Serializer = SubCategorySerializer
     filterset_fields: list[str] = ["name", "category"]

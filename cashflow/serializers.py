@@ -1,175 +1,112 @@
-from datetime import date
-from typing import Any, Dict, Type
-
-from django.core.exceptions import ValidationError
 from rest_framework import serializers
-
-from .models import CashFlow, Category, OperationType, Status, SubCategory
-from .services import CashFlowValidator
+from django.core.exceptions import ValidationError
+from .models import CashFlow, Status, OperationType, Category, SubCategory
+from .services.validators import (
+    CashFlowValidator,
+    OperationTypeValidator,
+    CategoryValidator,
+    SubCategoryValidator,
+    BaseValidator,
+)
 
 
 class CashFlowSerializer(serializers.ModelSerializer):
+    """Сериализатор для денежных потоков с комплексной валидацией"""
+
     class Meta:
-        model: Type[CashFlow] = CashFlow
-        fields: str = "__all__"
+        model = CashFlow
+        fields = "__all__"
 
-    def validate(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Валидация данных с использованием сервисного слоя.
-
-        Args:
-            data: Входные данные для валидации
-
-        Returns:
-            Валидированные данные
-
-        Raises:
-            serializers.ValidationError: При ошибках валидации
-        """
+    def validate(self, data: dict[str, any]) -> dict[str, any]:
+        """Основная валидация через сервисный слой"""
         try:
             return CashFlowValidator.validate_all(data)
         except ValidationError as e:
-            raise serializers.ValidationError(e.messages) from e
-
-    def validate_dates(start: str, end: str) -> tuple[date, date]:
-        try:
-            start_date = date.fromisoformat(start)
-            end_date = date.fromisoformat(end)
-            if start_date > end_date:
-                raise ValidationError("Начальная дата не может быть больше конечной")
-            return start_date, end_date
-        except ValueError as e:
-            raise ValidationError(
-                "Некорректный формат даты. Используйте YYYY-MM-DD"
-            ) from e
+            raise serializers.ValidationError(e.message_dict or str(e))
 
 
 class StatusSerializer(serializers.ModelSerializer):
+    """Сериализатор статусов с проверкой уникальности"""
+
     class Meta:
-        model: Type[Status] = Status
-        fields: str = "__all__"
+        model = Status
+        fields = "__all__"
 
     def validate_name(self, value: str) -> str:
-        """
-        Валидация названия статуса.
-
-        Args:
-            value: Значение поля name
-
-        Returns:
-            Проверенное значение
-
-        Raises:
-            serializers.ValidationError: Если статус с таким именем уже существует
-        """
-        if Status.objects.filter(name__iexact=value).exists():
-            raise serializers.ValidationError("Статус с таким названием уже существует")
-        return value
+        """Делегируем проверку уникальности сервисному слою"""
+        try:
+            return BaseValidator.validate_unique_name(Status, value, self.instance)
+        except ValidationError as e:
+            raise serializers.ValidationError(str(e))
 
 
 class OperationTypeSerializer(serializers.ModelSerializer):
+    """Сериализатор типов операций"""
+
     class Meta:
-        model: Type[OperationType] = OperationType
-        fields: str = "__all__"
+        model = OperationType
+        fields = "__all__"
 
     def validate_name(self, value: str) -> str:
-        """
-        Валидация названия типа операции.
-
-        Args:
-            value: Значение поля name
-
-        Returns:
-            Проверенное значение
-
-        Raises:
-            serializers.ValidationError: Если тип операции с таким именем уже существует
-        """
-        if OperationType.objects.filter(name__iexact=value).exists():
-            raise serializers.ValidationError(
-                "Тип операции с таким названием уже существует"
-            )
-        return value
+        """Валидация имени через сервисный слой"""
+        try:
+            return OperationTypeValidator.validate_name(value, self.instance)
+        except ValidationError as e:
+            raise serializers.ValidationError(str(e))
 
 
 class CategorySerializer(serializers.ModelSerializer):
-    operation_type_name: serializers.CharField = serializers.CharField(
-        source="operation_type.name", read_only=True, help_text="Название типа операции"
+    """Сериализатор категорий с расширенной валидацией"""
+
+    operation_type_name = serializers.CharField(
+        source="operation_type.name", read_only=True
     )
 
     class Meta:
-        model: Type[Category] = Category
-        fields: list[str] = "__all__"
-        extra_fields: list[str] = ["operation_type_name"]
+        model = Category
+        fields = "__all__"
+        extra_fields = ["operation_type_name"]
 
-    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Валидация связки категория + тип операции.
-
-        Args:
-            attrs: Атрибуты для валидации
-
-        Returns:
-            Проверенные атрибуты
-
-        Raises:
-            serializers.ValidationError: Если категория с таким именем уже существует для данного типа
-        """
+    def validate(self, attrs: dict[str, any]) -> dict[str, any]:
+        """Комплексная валидация категории"""
         name = attrs.get("name")
         operation_type = attrs.get("operation_type")
 
         if name and operation_type:
-            if Category.objects.filter(
-                name__iexact=name, operation_type=operation_type
-            ).exists():
-                raise serializers.ValidationError(
-                    {
-                        "name": "Категория с таким названием уже существует для этого типа операции"
-                    }
+            try:
+                attrs["name"] = CategoryValidator.validate_name(
+                    name, operation_type, self.instance
                 )
+            except ValidationError as e:
+                raise serializers.ValidationError({"name": str(e)})
+
         return attrs
 
 
 class SubCategorySerializer(serializers.ModelSerializer):
-    category_name: serializers.CharField = serializers.CharField(
-        source="category.name",
-        read_only=True,
-        help_text="Название родительской категории",
-    )
-    operation_type_name: serializers.CharField = serializers.CharField(
-        source="category.operation_type.name",
-        read_only=True,
-        help_text="Название типа операции родительской категории",
+    """Сериализатор подкатегорий с проверкой связей"""
+
+    category_name = serializers.CharField(source="category.name", read_only=True)
+    operation_type_name = serializers.CharField(
+        source="category.operation_type.name", read_only=True
     )
 
     class Meta:
-        model: Type[SubCategory] = SubCategory
-        fields: list[str] = "__all__"
-        extra_fields: list[str] = ["category_name", "operation_type_name"]
+        model = SubCategory
+        fields = "__all__"
+        extra_fields = ["category_name", "operation_type_name"]
 
-    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Валидация связки подкатегория + категория.
-
-        Args:
-            attrs: Атрибуты для валидации
-
-        Returns:
-            Проверенные атрибуты
-
-        Raises:
-            serializers.ValidationError: Если подкатегория с таким именем уже существует для данной категории
-        """
+    def validate(self, attrs: dict[str, any]) -> dict[str, any]:
+        """Валидация подкатегории через сервисный слой"""
         name = attrs.get("name")
         category = attrs.get("category")
 
         if name and category:
-            if SubCategory.objects.filter(
-                name__iexact=name, category=category
-            ).exists():
-                raise serializers.ValidationError(
-                    {
-                        "name": "Подкатегория с таким названием уже существует для этой категории"
-                    }
+            try:
+                attrs["name"] = SubCategoryValidator.validate_name(
+                    name, category, self.instance
                 )
+            except ValidationError as e:
+                raise serializers.ValidationError({"name": str(e)})
+
         return attrs

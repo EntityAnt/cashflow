@@ -1,15 +1,14 @@
-from typing import Any, Dict
 
 from django import forms
 from django.forms import BooleanField, ImageField
 from django.utils import timezone
 
 from cashflow.models import CashFlow, Category, OperationType, SubCategory
-from cashflow.services import CashFlowValidator
+from cashflow.services.validators import CashFlowValidator
 
 
 class StyleFormMixin:
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: any, **kwargs: any) -> None:
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
             if isinstance(field, BooleanField):
@@ -41,7 +40,7 @@ class CashFlowForm(StyleFormMixin, forms.ModelForm):
             "comment": forms.Textarea(attrs={"rows": 3}),
         }
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: any, **kwargs: any) -> None:
         super().__init__(*args, **kwargs)
         self.fields["subcategory"].queryset = SubCategory.objects.none()
 
@@ -62,7 +61,7 @@ class CashFlowForm(StyleFormMixin, forms.ModelForm):
                 self.instance.category.subcategories.order_by("name")
             )
 
-    def clean(self) -> Dict[str, Any]:
+    def clean(self) -> dict[str, any]:
         """Основная валидация формы"""
         cleaned_data = super().clean()
         return CashFlowValidator.validate_all(cleaned_data)
@@ -118,7 +117,7 @@ class SubCategoryForm(forms.ModelForm):
         fields = ["name", "category"]
         labels = {"name": "Название подкатегории*", "category": "Категория*"}
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, *args: any, **kwargs: any) -> None:
         super().__init__(*args, **kwargs)
         # Всегда показываем все категории
         self.fields["category"].queryset = Category.objects.all().select_related(
