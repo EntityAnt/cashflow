@@ -9,7 +9,8 @@
 ### Шаги установки:
 
 1. Клонировать репозиторий:
-   git clone https://github.com/EntityAnt/cashflow/tree/develop
+   git clone https://github.com/EntityAnt/cashflow.git
+
    cd cashflow-app
 
 2. Установить зависимости и создать виртуальное окружение через poetry:  

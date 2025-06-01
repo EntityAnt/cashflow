@@ -14,15 +14,12 @@ from rest_framework.serializers import Serializer
 from rest_framework.viewsets import ModelViewSet
 
 from . import serializers
-from .forms import CashFlowForm, CategoryForm, OperationTypeForm, SubCategoryForm
+from .forms import (CashFlowForm, CategoryForm, OperationTypeForm,
+                    SubCategoryForm)
 from .models import CashFlow, Category, OperationType, Status, SubCategory
-from .serializers import (
-    CashFlowSerializer,
-    CategorySerializer,
-    OperationTypeSerializer,
-    StatusSerializer,
-    SubCategorySerializer,
-)
+from .serializers import (CashFlowSerializer, CategorySerializer,
+                          OperationTypeSerializer, StatusSerializer,
+                          SubCategorySerializer)
 from .services.validators import CashFlowValidator
 
 

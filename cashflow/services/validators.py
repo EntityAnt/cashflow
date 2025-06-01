@@ -1,7 +1,9 @@
+from datetime import date
+
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from datetime import date
-from ..models import OperationType, Category, SubCategory
+
+from ..models import Category, OperationType, SubCategory
 
 
 class BaseValidator:

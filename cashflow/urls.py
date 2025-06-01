@@ -4,34 +4,17 @@ from rest_framework.routers import DefaultRouter
 from cashflow.apps import CashflowConfig
 
 from . import views
-from .views import (
-    CashFlowCreateView,
-    CashFlowDeleteView,
-    CashFlowListView,
-    CashFlowUpdateView,
-    CashFlowViewSet,
-    CategoryCreateView,
-    CategoryDeleteView,
-    CategoryListView,
-    CategoryUpdateView,
-    CategoryViewSet,
-    OperationTypeCreateView,
-    OperationTypeDeleteView,
-    OperationTypeListView,
-    OperationTypeUpdateView,
-    OperationTypeViewSet,
-    StatusCreateView,
-    StatusDeleteView,
-    StatusListView,
-    StatusUpdateView,
-    StatusViewSet,
-    SubCategoryCreateView,
-    SubCategoryDeleteView,
-    SubCategoryListView,
-    SubCategoryUpdateView,
-    SubCategoryViewSet,
-    get_subcategories,
-)
+from .views import (CashFlowCreateView, CashFlowDeleteView, CashFlowListView,
+                    CashFlowUpdateView, CashFlowViewSet, CategoryCreateView,
+                    CategoryDeleteView, CategoryListView, CategoryUpdateView,
+                    CategoryViewSet, OperationTypeCreateView,
+                    OperationTypeDeleteView, OperationTypeListView,
+                    OperationTypeUpdateView, OperationTypeViewSet,
+                    StatusCreateView, StatusDeleteView, StatusListView,
+                    StatusUpdateView, StatusViewSet, SubCategoryCreateView,
+                    SubCategoryDeleteView, SubCategoryListView,
+                    SubCategoryUpdateView, SubCategoryViewSet,
+                    get_subcategories)
 
 app_name = CashflowConfig.name
 
