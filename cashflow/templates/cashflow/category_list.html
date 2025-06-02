@@ -1,0 +1,69 @@
+{% extends 'cashflow/base.html' %}
+{% block content %}
+
+<div class="container mt-5">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Список категорий</h4>
+                <a href="{% url 'cashflow:category-create' %}" class="btn btn-success btn-sm">
+                    <i class="bi bi-plus-circle"></i> Добавить категорию
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if categories %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Тип операции</th>
+                            <th>Название категории</th>
+                            <th class="text-end">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in categories %}
+                        <tr>
+                            <td>{{ category.operation_type.name }}</td>
+                            <td>{{ category.name }}</td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'cashflow:category-update' category.pk %}" 
+                                       class="btn btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'cashflow:category-delete' category.pk %}" 
+                                       class="btn btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i> Категории не найдены.
+                <a href="{% url 'cashflow:category-create' %}" class="alert-link">Создать первую категорию?</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Подключение иконок Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+
+<style>
+    .table th {
+        white-space: nowrap;
+    }
+    .btn-group-sm > .btn {
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+
+{% endblock %}

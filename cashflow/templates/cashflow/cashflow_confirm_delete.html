@@ -1,0 +1,20 @@
+{% extends 'cashflow/base.html' %}
+{% block content %}
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-6 mt-5">
+            <form class="row" method="post" enctype="multipart/form-data">
+                <div class="card">
+                    <h3>Вы действительно хотите удалить запись от "{{object.date|date:"d M Y"}}" на сумму {{object.amount}} </h3>
+                    <div class="form-body">
+                        {% csrf_token %}
+                    </div>
+                    <button type="submit" class="btn btn-danger">Удалить</button>
+                    <a class="btn btn-primary mt-1" href="{% url 'cashflow:cashflow-list' %}" role="button">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
