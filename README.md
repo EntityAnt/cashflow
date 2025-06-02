@@ -9,16 +9,24 @@
 ### Шаги установки:
 
 1. Клонировать репозиторий:
+```bash
    git clone https://github.com/EntityAnt/cashflow.git
-
+```
+```bash
    cd cashflow-app
+```
 
-2. Установить зависимости и создать виртуальное окружение через poetry:  
-   - poetry install
+2. Установить зависимости и создать виртуальное окружение через poetry:
+
+```bash
+   poetry install
+```
 
 3. Активировать виртуальное окружение:  
 
-   - poetry shell
+```bash
+   poetry shell
+```
 
 4. Переименовать файл .env.sample в .env и заполнить его
 
@@ -30,6 +38,7 @@
 ```
 
 6. Создать суперпользователя (для доступа к админке):
+
 ```bash
         python manage.py create_admin
 ```
